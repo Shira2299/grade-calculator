@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>מחשבון ציונים – ציון סופי בקורס וממוצע לתואר</title>
+<meta name="description" content="מחשבון ציון סופי בקורס וממוצע משוקלל לתואר, כולל מחשבון יעד לציון הנדרש במבחן.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧮</text></svg>">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#070a10">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ציונים">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #070a10;
+    --panel: rgba(15, 20, 28, 0.55);
+    --panel-border: rgba(255, 255, 255, 0.09);
+    --ink: #f5f3ee;
+    --ink-soft: rgba(245, 243, 238, 0.7);
+    --ink-faint: rgba(245, 243, 238, 0.42);
+    --field-bg: rgba(8, 11, 16, 0.55);
+    --field-border: rgba(255, 255, 255, 0.11);
+    --accent-1: #22e0a8;
+    --accent-2: #2fa8ff;
+    --warning: #f2b134;
+    --danger: #f87171;
+    --font-ui: "Inter", "Segoe UI", "Arial Hebrew", Arial, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); }
+  body { min-height: 100vh; overflow-x: hidden; }
+
+  .stage { position: relative; min-height: 100vh; isolation: isolate; }
+  #particles { position: fixed; inset: 0; z-index: -2; pointer-events: none; opacity: 0.7; }
+  .glow {
+    position: fixed; width: 46vw; height: 46vw; border-radius: 50%;
+    filter: blur(100px); z-index: -3; pointer-events: none; opacity: 0.3;
+  }
+  .glow-a { top: -14%; right: -12%; background: var(--accent-1); }
+  .glow-b { bottom: -16%; left: -12%; background: var(--accent-2); }
+
+  .page {
+    direction: rtl; font-family: var(--font-ui); color: var(--ink);
+    max-width: 660px; margin: 0 auto;
+    min-height: 100vh; padding: 28px 18px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+  }
+
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+  .card {
+    position: relative;
+    width: 100%;
+    background: var(--panel);
+    -webkit-backdrop-filter: blur(22px);
+    backdrop-filter: blur(22px);
+    border: 1px solid var(--panel-border);
+    border-radius: 26px;
+    box-shadow: 0 30px 70px -28px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.02) inset;
+    padding: clamp(20px, 4.5vw, 34px) clamp(18px, 4.5vw, 34px) 28px;
+    animation: rise 0.5s cubic-bezier(.2, .8, .2, 1);
+  }
+  @keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+  .card::before {
+    content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1px;
+    background: linear-gradient(160deg, rgba(255,255,255,0.16), rgba(255,255,255,0) 40%);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor; mask-composite: exclude; pointer-events: none;
+  }
+
+  /* ---------- Tabs ---------- */
+  .mode-tabs { display: flex; gap: 12px; margin-bottom: 20px; }
+  .mode-btn {
+    flex: 1; font-family: inherit; font-size: 15px; font-weight: 700; color: var(--ink-soft);
+    background: rgba(255, 255, 255, 0.03); border: 1.5px solid var(--field-border);
+    border-radius: 14px; padding: 14px 10px; cursor: pointer; transition: border-color .25s, color .25s, box-shadow .25s, background .25s;
+  }
+  .mode-btn:hover { color: var(--ink); border-color: rgba(255,255,255,0.2); }
+  .mode-btn.active {
+    color: var(--ink); border-color: var(--accent-2);
+    box-shadow: 0 0 0 1px var(--accent-2) inset, 0 0 26px -3px var(--accent-2);
+    background: rgba(47, 168, 255, 0.1);
+  }
+
+  .course-tabs { display: flex; align-items: center; gap: 7px; overflow-x: auto; margin-bottom: 14px; }
+  .course-tab {
+    flex: 0 0 auto; font-family: inherit; font-size: 13px; font-weight: 600; color: var(--ink-soft);
+    background: rgba(255, 255, 255, 0.03); border: 1px solid var(--field-border); border-radius: 999px;
+    padding: 7px 15px; cursor: pointer; max-width: 160px; white-space: nowrap;
+  }
+  .course-tab .tab-label { outline: none; }
+  .course-tab.active { color: var(--ink); border-color: var(--accent-1); background: rgba(34, 224, 168, 0.12); box-shadow: 0 0 14px -4px var(--accent-1); }
+  .course-tab .tab-label[contenteditable="true"] { cursor: text; }
+  .course-tab-add {
+    flex: 0 0 auto; width: 28px; height: 28px; border-radius: 50%; font-size: 16px; font-weight: 700;
+    color: var(--ink-faint); background: transparent; border: 1px dashed var(--field-border); cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .course-tab-add:hover { color: var(--accent-1); border-color: var(--accent-1); }
+
+  /* ---------- Rows ---------- */
+  .rows { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
+  .row { display: grid; grid-template-columns: 1fr 84px 84px 26px; gap: 9px; align-items: center; }
+  .row-name {
+    font-size: 13.5px; font-weight: 600; color: var(--ink-soft);
+    background: rgba(255,255,255,0.02); border: 1px dashed var(--field-border); border-radius: 10px;
+    padding: 10px 12px; display: flex; align-items: center;
+  }
+
+  input[type="number"], input[type="text"] {
+    font-family: inherit; font-variant-numeric: tabular-nums; font-size: 14px;
+    color: var(--ink); background: var(--field-bg); border: 1px solid var(--field-border);
+    border-radius: 10px; padding: 10px 12px; width: 100%; min-width: 0;
+  }
+  input::placeholder { color: var(--ink-faint); }
+  input:focus { outline: none; border-color: var(--accent-1); box-shadow: 0 0 0 3px rgba(34, 224, 168, 0.18); }
+
+  .row-del {
+    width: 26px; height: 26px; border-radius: 50%; border: none; background: transparent;
+    color: var(--ink-faint); font-size: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: color .2s, transform .2s;
+  }
+  .row-del:hover { color: var(--danger); transform: scale(1.15); }
+  .row-del-spacer { width: 26px; height: 26px; }
+
+  .add-row-btn {
+    font-family: inherit; font-size: 13px; font-weight: 700; color: var(--ink-soft);
+    background: rgba(255, 255, 255, 0.02); border: 1px dashed var(--field-border); border-radius: 10px;
+    padding: 10px; width: 100%; cursor: pointer; margin-bottom: 18px; transition: border-color .2s, color .2s, background .2s;
+  }
+  .add-row-btn:hover { border-color: var(--accent-1); color: var(--ink); background: rgba(34, 224, 168, 0.07); }
+
+  /* ---------- degree type radio ---------- */
+  .type-group { display: flex; flex-direction: column; gap: 5px; font-size: 12px; padding: 0 2px; }
+  .type-opt { display: flex; align-items: center; gap: 7px; cursor: pointer; color: var(--ink-soft); user-select: none; }
+  .type-opt input { position: absolute; opacity: 0; width: 0; height: 0; }
+  .type-mark {
+    width: 15px; height: 15px; border-radius: 50%; border: 1.5px solid rgba(255,255,255,0.35);
+    display: inline-block; flex-shrink: 0; transition: all .2s ease;
+  }
+  .type-opt:hover .type-mark { border-color: rgba(255,255,255,0.6); }
+  .type-opt input:checked + .type-mark { background: var(--accent-1); border-color: var(--accent-1); box-shadow: 0 0 9px -1px var(--accent-1); }
+  .type-opt.checked { color: var(--ink); }
+
+  /* ---------- Results ---------- */
+  .results { position: relative; padding-top: 18px; margin-top: 4px; }
+  .results::before {
+    content: ""; position: absolute; top: 0; right: 4%; left: 4%; height: 2px; border-radius: 2px;
+    background: linear-gradient(to left, var(--accent-1), var(--accent-2)); opacity: 0.65;
+  }
+  .stats-row { display: flex; align-items: center; justify-content: center; gap: 20px; flex-wrap: wrap; }
+  .stat { display: flex; align-items: baseline; gap: 7px; font-size: 14.5px; color: var(--ink-soft); }
+  .stat .num {
+    font-size: 30px; font-weight: 800; letter-spacing: -0.01em;
+    background: linear-gradient(135deg, var(--accent-1), var(--accent-2));
+    -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .stat .num.danger { -webkit-text-fill-color: var(--danger); background: none; }
+  .divider { width: 2px; height: 26px; border-radius: 2px; background: linear-gradient(to bottom, var(--accent-1), var(--accent-2)); }
+  .reset-btn {
+    background: none; border: none; font-size: 17px; color: var(--ink-faint); cursor: pointer;
+    transition: transform .4s ease, color .2s ease; display: flex; align-items: center;
+  }
+  .reset-btn:hover { color: var(--accent-2); transform: rotate(-180deg); }
+
+  .caption { text-align: center; font-size: 12px; color: var(--ink-faint); margin: 10px 0 0; min-height: 15px; }
+  .caption.warn { color: var(--warning); }
+  .caption.err { color: var(--danger); }
+  .caption.ok { color: var(--accent-1); }
+
+  /* ---------- Target tool ---------- */
+  .target { border-top: 1px dashed var(--panel-border); margin-top: 16px; padding-top: 14px; }
+  .target-line { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; justify-content: center; font-size: 13.5px; color: var(--ink-soft); text-align: center; }
+  .target-line input { width: 74px; text-align: center; }
+  .target-line strong { color: var(--accent-1); font-size: 16px; }
+  .target-line strong.err { color: var(--danger); }
+
+  .device[hidden] { display: none; }
+
+  .export-btn {
+    display: flex; align-items: center; gap: 7px; justify-content: center;
+    margin: 20px auto 0; font-family: inherit; font-size: 12.5px; font-weight: 700;
+    color: var(--ink-soft); background: rgba(255,255,255,0.02); border: 1px solid var(--field-border);
+    border-radius: 999px; padding: 9px 20px; cursor: pointer; transition: border-color .2s, color .2s, background .2s;
+  }
+  .export-btn:hover { border-color: var(--accent-1); color: var(--ink); background: rgba(34, 224, 168, 0.07); }
+
+  footer.credit { text-align: center; font-size: 11px; color: var(--ink-faint); margin-top: 14px; }
+
+  @media (max-width: 420px) {
+    .row { grid-template-columns: 1fr 1fr; grid-template-areas: "name name" "weight grade"; row-gap: 7px; }
+    .row-name { grid-area: name; }
+    .row > input:nth-of-type(1) { grid-area: weight; }
+    .row > input:nth-of-type(2) { grid-area: grade; }
+    .row-del, .row-del-spacer { display: none; }
+    #degreeRows .row { grid-template-columns: 1fr 1fr; grid-template-areas: "name name" "credits grade" "type type"; }
+    #degreeRows .row .type-group { grid-area: type; flex-direction: row; gap: 16px; }
+    #degreeRows .row > input:nth-of-type(1) { grid-area: credits; }
+    #degreeRows .row > input:nth-of-type(2) { grid-area: grade; }
+  }
+</style>
+</head>
+<body>
+
+<div class="stage">
+  <div class="glow glow-a"></div>
+  <div class="glow glow-b"></div>
+  <canvas id="particles"></canvas>
+
+  <div class="page">
+    <div class="card">
+      <div class="mode-tabs" role="tablist" aria-label="בחירת מחשבון">
+        <button class="mode-btn active" id="modeBtnCourse" type="button">ציון סופי בקורס</button>
+        <button class="mode-btn" id="modeBtnDegree" type="button">ממוצע לתואר</button>
+      </div>
+
+      <!-- ===================== COURSE ===================== -->
+      <section class="device" id="courseDevice">
+        <div class="course-tabs" id="courseTabs" aria-label="קורסים שמורים"></div>
+
+        <div class="rows" id="courseRows"></div>
+        <button class="add-row-btn" id="btnAddAssignment" type="button">+ הוספת מטלה</button>
+
+        <div class="results">
+          <div class="stats-row">
+            <div class="stat"><span>ציון סופי:</span><span class="num" id="courseFinal">–</span></div>
+            <span class="divider"></span>
+            <div class="stat"><span>משקל:</span><span class="num" id="courseWeight">0</span><span>%</span></div>
+            <button class="reset-btn" id="btnResetCourse" type="button" title="איפוס הקורס הנוכחי">↻</button>
+          </div>
+          <p class="caption" id="courseCaption"></p>
+        </div>
+
+        <div class="target">
+          <div class="target-line">
+            <span>כדי לסיים עם ציון</span>
+            <input type="number" id="targetGrade" min="0" max="100" step="0.5" placeholder="90" inputmode="decimal" aria-label="ציון סופי רצוי" />
+            <span>צריך במבחן:</span>
+            <strong id="targetOut">—</strong>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== DEGREE ===================== -->
+      <section class="device" id="degreeDevice" hidden>
+        <div class="rows" id="degreeRows"></div>
+        <button class="add-row-btn" id="btnAddDegreeCourse" type="button">+ הוספת קורס</button>
+
+        <div class="results">
+          <div class="stats-row">
+            <div class="stat"><span>ממוצע:</span><span class="num" id="degreeAvg">–</span></div>
+            <span class="divider"></span>
+            <div class="stat"><span>נ"ז:</span><span class="num" id="degreeCredits">0</span></div>
+            <button class="reset-btn" id="btnResetDegree" type="button" title="איפוס הממוצע">↻</button>
+          </div>
+          <p class="caption" id="degreeCaption">מתקדם: 0 · רגיל: 0</p>
+        </div>
+      </section>
+
+      <button class="export-btn" id="btnExportCsv" type="button">⭳ ייצוא הנתונים לאקסל</button>
+      <footer class="credit">הנתונים נשמרים בדפדפן שלך בלבד · קורסי "מתקדם" נספרים פי 1.5 בנ"ז בממוצע</footer>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var STORAGE_KEY = "ouGradeCalc.v3";
+
+  function uid() { return Math.random().toString(36).slice(2, 10); }
+  function toNum(v) {
+    if (v === "" || v === null || v === undefined) return null;
+    var n = parseFloat(v);
+    return isNaN(n) ? null : n;
+  }
+  function roundHalfUp(n, decimals) {
+    var factor = Math.pow(10, decimals || 0);
+    return Math.round((n + (n >= 0 ? 1 : -1) * 1e-9) * factor) / factor;
+  }
+  function fmt(n, decimals) {
+    if (n === null || n === undefined || isNaN(n)) return "—";
+    var d = decimals === undefined ? 1 : decimals;
+    var f = n.toFixed(d);
+    if (decimals === undefined) f = f.replace(/\.0$/, "");
+    return f;
+  }
+
+  function freshCourse(name) {
+    return { id: uid(), name: name || "קורס חדש", exam: { weight: "", grade: "" }, assignments: [] };
+  }
+  function freshDegreeRow() { return { id: uid(), name: "", credits: "", grade: "", advanced: false }; }
+
+  function loadState() {
+    try {
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        var p = JSON.parse(raw);
+        if (p && Array.isArray(p.courses) && p.courses.length) {
+          if (!p.courses.some(function (c) { return c.id === p.activeId; })) p.activeId = p.courses[0].id;
+          if (!Array.isArray(p.degree)) p.degree = [];
+          if (p.mode !== "course" && p.mode !== "degree") p.mode = "course";
+          return p;
+        }
+      }
+    } catch (e) { /* corrupt storage */ }
+    var c = freshCourse("קורס 1");
+    return { courses: [c], activeId: c.id, degree: [], mode: "course" };
+  }
+  var state = loadState();
+  function saveState() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {} }
+  function activeCourse() {
+    var f = state.courses.find(function (c) { return c.id === state.activeId; });
+    if (!f) { f = state.courses[0]; state.activeId = f.id; }
+    return f;
+  }
+
+  // ---------- refs ----------
+  var modeBtnCourse = document.getElementById("modeBtnCourse");
+  var modeBtnDegree = document.getElementById("modeBtnDegree");
+  var courseDevice = document.getElementById("courseDevice");
+  var degreeDevice = document.getElementById("degreeDevice");
+  var courseTabsEl = document.getElementById("courseTabs");
+  var courseRowsEl = document.getElementById("courseRows");
+  var courseFinalEl = document.getElementById("courseFinal");
+  var courseWeightEl = document.getElementById("courseWeight");
+  var courseCaptionEl = document.getElementById("courseCaption");
+  var targetGradeEl = document.getElementById("targetGrade");
+  var targetOutEl = document.getElementById("targetOut");
+  var degreeRowsEl = document.getElementById("degreeRows");
+  var degreeAvgEl = document.getElementById("degreeAvg");
+  var degreeCreditsEl = document.getElementById("degreeCredits");
+  var degreeCaptionEl = document.getElementById("degreeCaption");
+
+  function applyMode() {
+    var isCourse = state.mode === "course";
+    modeBtnCourse.classList.toggle("active", isCourse);
+    modeBtnDegree.classList.toggle("active", !isCourse);
+    courseDevice.hidden = !isCourse;
+    degreeDevice.hidden = isCourse;
+  }
+  modeBtnCourse.addEventListener("click", function () { state.mode = "course"; saveState(); applyMode(); });
+  modeBtnDegree.addEventListener("click", function () { state.mode = "degree"; saveState(); applyMode(); });
+
+  // ===================== COURSE =====================
+  function renderCourseTabs() {
+    courseTabsEl.innerHTML = "";
+    state.courses.forEach(function (c) {
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "course-tab" + (c.id === state.activeId ? " active" : "");
+      var label = document.createElement("span");
+      label.className = "tab-label";
+      label.textContent = c.name || "קורס";
+      btn.appendChild(label);
+      btn.addEventListener("click", function () {
+        if (c.id === state.activeId) {
+          label.contentEditable = "true";
+          label.focus();
+          document.execCommand && document.execCommand("selectAll", false, null);
+        } else {
+          state.activeId = c.id; saveState(); renderCourseAll();
+        }
+      });
+      label.addEventListener("blur", function () {
+        label.contentEditable = "false";
+        var v = label.textContent.trim() || "קורס";
+        c.name = v; label.textContent = v; saveState();
+      });
+      label.addEventListener("keydown", function (e) {
+        if (e.key === "Enter") { e.preventDefault(); label.blur(); }
+      });
+      courseTabsEl.appendChild(btn);
+    });
+    var add = document.createElement("button");
+    add.type = "button"; add.className = "course-tab-add"; add.textContent = "+"; add.title = "קורס נוסף";
+    add.addEventListener("click", addCourse);
+    courseTabsEl.appendChild(add);
+  }
+
+  function makeExamRow(course) {
+    var row = document.createElement("div");
+    row.className = "row exam";
+    var name = document.createElement("div");
+    name.className = "row-name"; name.textContent = "מבחן";
+    row.appendChild(name);
+
+    var w = document.createElement("input");
+    w.type = "number"; w.min = "0"; w.max = "100"; w.step = "0.5"; w.placeholder = "משקל %"; w.inputMode = "decimal";
+    w.value = course.exam.weight; w.setAttribute("aria-label", "משקל המבחן");
+    w.addEventListener("input", function () { course.exam.weight = w.value; saveState(); renderCourseTally(); });
+    row.appendChild(w);
+
+    var g = document.createElement("input");
+    g.type = "number"; g.min = "0"; g.max = "100"; g.step = "0.5"; g.placeholder = "ציון"; g.inputMode = "decimal";
+    g.value = course.exam.grade; g.setAttribute("aria-label", "ציון המבחן");
+    g.addEventListener("input", function () { course.exam.grade = g.value; saveState(); renderCourseTally(); });
+    row.appendChild(g);
+
+    var spacer = document.createElement("span"); spacer.className = "row-del-spacer";
+    row.appendChild(spacer);
+    return row;
+  }
+
+  function makeAssignmentRow(course, a, index) {
+    var row = document.createElement("div");
+    row.className = "row";
+
+    var name = document.createElement("input");
+    name.type = "text"; name.placeholder = "מטלה " + (index + 1); name.value = a.name || "";
+    name.addEventListener("input", function () { a.name = name.value; saveState(); });
+    row.appendChild(name);
+
+    var w = document.createElement("input");
+    w.type = "number"; w.min = "0"; w.max = "100"; w.step = "0.5"; w.placeholder = "משקל %"; w.inputMode = "decimal";
+    w.value = a.weight; w.setAttribute("aria-label", "משקל המטלה");
+    w.addEventListener("input", function () { a.weight = w.value; saveState(); renderCourseTally(); });
+    row.appendChild(w);
+
+    var g = document.createElement("input");
+    g.type = "number"; g.min = "0"; g.max = "100"; g.step = "0.5"; g.placeholder = "ציון"; g.inputMode = "decimal";
+    g.value = a.grade; g.setAttribute("aria-label", "ציון המטלה");
+    g.addEventListener("input", function () { a.grade = g.value; saveState(); renderCourseTally(); });
+    row.appendChild(g);
+
+    var del = document.createElement("button");
+    del.type = "button"; del.className = "row-del"; del.textContent = "×"; del.setAttribute("aria-label", "מחיקת מטלה");
+    del.addEventListener("click", function () {
+      course.assignments = course.assignments.filter(function (x) { return x.id !== a.id; });
+      saveState(); renderCourseRows(); renderCourseTally();
+    });
+    row.appendChild(del);
+    return row;
+  }
+
+  function renderCourseRows() {
+    var course = activeCourse();
+    courseRowsEl.innerHTML = "";
+    courseRowsEl.appendChild(makeExamRow(course));
+    course.assignments.forEach(function (a, i) { courseRowsEl.appendChild(makeAssignmentRow(course, a, i)); });
+  }
+
+  function renderCourseTally() {
+    var course = activeCourse();
+    var ew = toNum(course.exam.weight), eg = toNum(course.exam.grade);
+    var totalWeight = ew || 0;
+    var filledWeight = (ew !== null && eg !== null) ? ew : 0;
+    var contribSum = (ew !== null && eg !== null) ? ew * eg / 100 : 0;
+    var anyWeight = ew !== null;
+    var assignContribSum = 0;
+    var allAssignWeightsPresent = true;
+    var allAssignGradesPresent = true;
+
+    course.assignments.forEach(function (a) {
+      var w = toNum(a.weight), g = toNum(a.grade);
+      if (w !== null) { totalWeight += w; anyWeight = true; } else { allAssignWeightsPresent = false; }
+      if (g === null) allAssignGradesPresent = false;
+      if (w !== null && g !== null) { filledWeight += w; contribSum += w * g / 100; assignContribSum += w * g / 100; }
+    });
+
+    var totalRounded = Math.round(totalWeight * 100) / 100;
+    courseWeightEl.textContent = fmt(totalRounded);
+    courseWeightEl.className = "num" + (totalRounded > 100.01 ? " danger" : "");
+    var eps = 0.01;
+
+    if (totalRounded > 100 + eps) {
+      courseCaptionEl.textContent = "חרגתן מ־100 נקודות ב־" + fmt(totalRounded - 100) + " — בדקי את המשקלים.";
+      courseCaptionEl.className = "caption err";
+    } else if (Math.abs(totalRounded - 100) < eps && totalRounded > 0) {
+      courseCaptionEl.textContent = "כל הניקוד חולק בין הרכיבים.";
+      courseCaptionEl.className = "caption ok";
+    } else if (totalRounded > 0) {
+      courseCaptionEl.textContent = "נותרו " + fmt(100 - totalRounded) + " נק' שטרם קיבלו משקל.";
+      courseCaptionEl.className = "caption warn";
+    } else {
+      courseCaptionEl.textContent = "התחילי מהזנת המשקל של המבחן ושל כל מטלה.";
+      courseCaptionEl.className = "caption";
+    }
+
+    var weightComplete = Math.abs(totalRounded - 100) < eps;
+    var gradesComplete = Math.abs(filledWeight - 100) < eps;
+
+    if (!anyWeight) {
+      courseFinalEl.textContent = "–";
+    } else if (weightComplete && gradesComplete) {
+      courseFinalEl.textContent = fmt(roundHalfUp(contribSum, 0), 0);
+    } else {
+      courseFinalEl.textContent = fmt(contribSum, 1);
+    }
+
+    // target tool
+    var target = toNum(targetGradeEl.value);
+    var weightsOk = ew !== null && allAssignWeightsPresent && Math.abs(totalWeight - 100) < eps;
+    if (target === null) {
+      targetOutEl.textContent = "—"; targetOutEl.className = "";
+    } else if (!weightsOk) {
+      targetOutEl.textContent = "השלימי משקלים ל־100"; targetOutEl.className = "";
+    } else if (!allAssignGradesPresent) {
+      targetOutEl.textContent = "חסר ציון במטלה"; targetOutEl.className = "";
+    } else {
+      var required = (target - assignContribSum) * 100 / ew;
+      if (required > 100 + eps) {
+        var maxPossible = roundHalfUp(assignContribSum + ew, 1);
+        targetOutEl.textContent = "לא ניתן (מקס' " + fmt(maxPossible) + ")";
+        targetOutEl.className = "err";
+      } else if (required < -eps) {
+        targetOutEl.textContent = "כבר הובטח!";
+        targetOutEl.className = "";
+      } else {
+        targetOutEl.textContent = fmt(Math.max(0, roundHalfUp(required, 1)));
+        targetOutEl.className = "";
+      }
+    }
+  }
+
+  function renderCourseAll() { renderCourseTabs(); renderCourseRows(); renderCourseTally(); }
+
+  function addCourse() {
+    var c = freshCourse("קורס " + (state.courses.length + 1));
+    state.courses.push(c); state.activeId = c.id; saveState(); renderCourseAll();
+  }
+  function resetCourse() {
+    var c = activeCourse();
+    c.exam = { weight: "", grade: "" }; c.assignments = [];
+    saveState(); renderCourseAll();
+  }
+
+  targetGradeEl.addEventListener("input", renderCourseTally);
+  document.getElementById("btnAddAssignment").addEventListener("click", function () {
+    activeCourse().assignments.push({ id: uid(), name: "", weight: "", grade: "" });
+    saveState(); renderCourseRows(); renderCourseTally();
+    var inputs = courseRowsEl.querySelectorAll(".row:last-child input");
+    if (inputs.length) inputs[0].focus();
+  });
+  document.getElementById("btnResetCourse").addEventListener("click", resetCourse);
+
+  // ===================== DEGREE =====================
+  function makeDegreeRow(r) {
+    var row = document.createElement("div");
+    row.className = "row";
+    row.style.gridTemplateColumns = "1fr 66px 66px 78px 26px";
+
+    var name = document.createElement("input");
+    name.type = "text"; name.placeholder = "שם הקורס"; name.value = r.name;
+    name.addEventListener("input", function () { r.name = name.value; saveState(); });
+    row.appendChild(name);
+
+    var cr = document.createElement("input");
+    cr.type = "number"; cr.min = "0"; cr.step = "0.5"; cr.placeholder = 'נ"ז'; cr.value = r.credits;
+    cr.setAttribute("aria-label", "נקודות זכות");
+    cr.addEventListener("input", function () { r.credits = cr.value; saveState(); renderDegreeTally(); });
+    row.appendChild(cr);
+
+    var gr = document.createElement("input");
+    gr.type = "number"; gr.min = "0"; gr.max = "100"; gr.step = "0.5"; gr.placeholder = "ציון"; gr.value = r.grade;
+    gr.addEventListener("input", function () { r.grade = gr.value; saveState(); renderDegreeTally(); });
+    row.appendChild(gr);
+
+    var group = document.createElement("div");
+    group.className = "type-group";
+    var rid = "adv_" + r.id;
+    function makeOpt(labelText, isAdvanced) {
+      var lbl = document.createElement("label");
+      lbl.className = "type-opt";
+      var inp = document.createElement("input");
+      inp.type = "radio"; inp.name = rid; inp.checked = r.advanced === isAdvanced;
+      inp.addEventListener("change", function () { r.advanced = isAdvanced; saveState(); syncOpts(); renderDegreeTally(); });
+      var mark = document.createElement("span"); mark.className = "type-mark";
+      var txt = document.createElement("span"); txt.textContent = labelText;
+      lbl.appendChild(inp); lbl.appendChild(mark); lbl.appendChild(txt);
+      return lbl;
+    }
+    var optReg = makeOpt("רגיל", false);
+    var optAdv = makeOpt("מתקדם", true);
+    function syncOpts() {
+      optReg.classList.toggle("checked", !r.advanced);
+      optAdv.classList.toggle("checked", r.advanced);
+    }
+    syncOpts();
+    group.appendChild(optReg); group.appendChild(optAdv);
+    row.appendChild(group);
+
+    var del = document.createElement("button");
+    del.type = "button"; del.className = "row-del"; del.textContent = "×"; del.setAttribute("aria-label", "מחיקת קורס");
+    del.addEventListener("click", function () {
+      state.degree = state.degree.filter(function (x) { return x.id !== r.id; });
+      saveState(); renderDegreeRows(); renderDegreeTally();
+    });
+    row.appendChild(del);
+    return row;
+  }
+
+  function renderDegreeRows() {
+    degreeRowsEl.innerHTML = "";
+    state.degree.forEach(function (r) { degreeRowsEl.appendChild(makeDegreeRow(r)); });
+  }
+
+  function renderDegreeTally() {
+    var totalCredits = 0, advCredits = 0, regCredits = 0, weightedSum = 0, weightedCredits = 0, incomplete = 0;
+    state.degree.forEach(function (r) {
+      var cr = toNum(r.credits), gr = toNum(r.grade);
+      if (cr === null || gr === null) { incomplete++; return; }
+      var mult = r.advanced ? 1.5 : 1;
+      totalCredits += cr;
+      if (r.advanced) advCredits += cr; else regCredits += cr;
+      weightedCredits += cr * mult;
+      weightedSum += gr * cr * mult;
+    });
+
+    degreeAvgEl.textContent = weightedCredits > 0 ? fmt(weightedSum / weightedCredits, 2) : "–";
+    degreeCreditsEl.textContent = fmt(totalCredits, 1);
+    var cap = 'מתקדם: ' + fmt(advCredits, 1) + ' · רגיל: ' + fmt(regCredits, 1);
+    if (incomplete > 0) cap += " · " + incomplete + " קורסים חסרים נתון";
+    degreeCaptionEl.textContent = cap;
+  }
+
+  document.getElementById("btnAddDegreeCourse").addEventListener("click", function () {
+    state.degree.push(freshDegreeRow());
+    saveState(); renderDegreeRows(); renderDegreeTally();
+    var inputs = degreeRowsEl.querySelectorAll(".row:last-child input");
+    if (inputs.length) inputs[0].focus();
+  });
+  document.getElementById("btnResetDegree").addEventListener("click", function () {
+    state.degree = []; saveState(); renderDegreeRows(); renderDegreeTally();
+  });
+
+  // ===================== particles background =====================
+  (function () {
+    var canvas = document.getElementById("particles");
+    var ctx = canvas.getContext("2d");
+    var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    var W, H, pts = [];
+    var N = 85, LINK = 155;
+    var COLORS = [[34, 224, 168], [47, 168, 255], [200, 210, 230]];
+
+    function resize() {
+      W = canvas.width = window.innerWidth;
+      H = canvas.height = window.innerHeight;
+    }
+    function mkPt() {
+      var c = COLORS[Math.floor(Math.random() * COLORS.length)];
+      return { x: Math.random() * W, y: Math.random() * H, vx: (Math.random() - 0.5) * 0.28, vy: (Math.random() - 0.5) * 0.28, r: c[0], g: c[1], b: c[2] };
+    }
+    function frame() {
+      ctx.clearRect(0, 0, W, H);
+      pts.forEach(function (p) {
+        if (!reduceMotion) { p.x += p.vx; p.y += p.vy; }
+        if (p.x < 0) p.x = W; if (p.x > W) p.x = 0;
+        if (p.y < 0) p.y = H; if (p.y > H) p.y = 0;
+        ctx.beginPath(); ctx.arc(p.x, p.y, 2.1, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(" + p.r + "," + p.g + "," + p.b + ",.7)"; ctx.fill();
+      });
+      for (var i = 0; i < pts.length; i++) {
+        for (var j = i + 1; j < pts.length; j++) {
+          var dx = pts[i].x - pts[j].x, dy = pts[i].y - pts[j].y;
+          var d = Math.hypot(dx, dy);
+          if (d < LINK) {
+            var a = (1 - d / LINK) * 0.3;
+            var r = (pts[i].r + pts[j].r) >> 1, g = (pts[i].g + pts[j].g) >> 1, b = (pts[i].b + pts[j].b) >> 1;
+            ctx.beginPath(); ctx.moveTo(pts[i].x, pts[i].y); ctx.lineTo(pts[j].x, pts[j].y);
+            ctx.strokeStyle = "rgba(" + r + "," + g + "," + b + "," + a + ")"; ctx.lineWidth = 0.7; ctx.stroke();
+          }
+        }
+      }
+      if (!reduceMotion) requestAnimationFrame(frame);
+    }
+    resize();
+    pts = Array.from({ length: N }, mkPt);
+    window.addEventListener("resize", function () { resize(); });
+    frame();
+  })();
+
+  // ===================== export to Excel (CSV) =====================
+  function csvEsc(v) {
+    v = String(v === null || v === undefined ? "" : v);
+    if (/[",\n]/.test(v)) v = '"' + v.replace(/"/g, '""') + '"';
+    return v;
+  }
+
+  function buildCourseFinal(course) {
+    var ew = toNum(course.exam.weight), eg = toNum(course.exam.grade);
+    var totalWeight = ew || 0, filledWeight = (ew !== null && eg !== null) ? ew : 0;
+    var contribSum = (ew !== null && eg !== null) ? ew * eg / 100 : 0;
+    course.assignments.forEach(function (a) {
+      var w = toNum(a.weight), g = toNum(a.grade);
+      if (w !== null) totalWeight += w;
+      if (w !== null && g !== null) { filledWeight += w; contribSum += w * g / 100; }
+    });
+    var totalRounded = Math.round(totalWeight * 100) / 100;
+    var weightComplete = Math.abs(totalRounded - 100) < 0.01;
+    var gradesComplete = Math.abs(filledWeight - 100) < 0.01;
+    if (weightComplete && gradesComplete) {
+      return fmt(roundHalfUp(contribSum, 0), 0) + " (מדויק: " + fmt(contribSum, 2) + ")";
+    }
+    return "לא הושלם (נצברו " + fmt(contribSum, 1) + " מתוך " + fmt(totalRounded, 1) + " נק' משקל שהוזנו)";
+  }
+
+  function buildCSV() {
+    var lines = [];
+    function row(arr) { lines.push(arr.map(csvEsc).join(",")); }
+    var now = new Date();
+    var dateStr = now.toLocaleDateString("he-IL");
+
+    row(["מחשבון ציונים – ייצוא נתונים"]);
+    row(["תאריך ייצוא", dateStr]);
+    lines.push("");
+
+    state.courses.forEach(function (course) {
+      row(["ציון סופי בקורס: " + (course.name || "קורס")]);
+      row(["רכיב", "משקל (%)", "ציון", "תרומה לציון"]);
+      var ew = toNum(course.exam.weight), eg = toNum(course.exam.grade);
+      var examContrib = (ew !== null && eg !== null) ? fmt(ew * eg / 100, 2) : "";
+      row(["מבחן", course.exam.weight || "", course.exam.grade || "", examContrib]);
+      course.assignments.forEach(function (a, i) {
+        var w = toNum(a.weight), g = toNum(a.grade);
+        var c = (w !== null && g !== null) ? fmt(w * g / 100, 2) : "";
+        row([a.name || ("מטלה " + (i + 1)), a.weight || "", a.grade || "", c]);
+      });
+      row(["", "", "ציון סופי", buildCourseFinal(course)]);
+      lines.push("");
+    });
+
+    if (state.degree.length) {
+      row(["ממוצע לתואר"]);
+      row(["שם הקורס", 'נ"ז', "ציון", "סוג"]);
+      state.degree.forEach(function (r) {
+        row([r.name || "", r.credits || "", r.grade || "", r.advanced ? "מתקדם" : "רגיל"]);
+      });
+      var totalCredits = 0, weightedSum = 0, weightedCredits = 0;
+      state.degree.forEach(function (r) {
+        var cr = toNum(r.credits), gr = toNum(r.grade);
+        if (cr === null || gr === null) return;
+        var mult = r.advanced ? 1.5 : 1;
+        totalCredits += cr; weightedCredits += cr * mult; weightedSum += gr * cr * mult;
+      });
+      row(["", "", "ממוצע משוקלל", weightedCredits > 0 ? fmt(weightedSum / weightedCredits, 2) : ""]);
+      row(["", "", 'סה"כ נ"ז', fmt(totalCredits, 1)]);
+      lines.push("");
+    }
+
+    return lines.join("\r\n");
+  }
+
+  function exportCSV() {
+    var csv = buildCSV();
+    var bom = String.fromCharCode(0xFEFF);
+    var blob = new Blob([bom + csv], { type: "text/csv;charset=utf-8;" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    var now = new Date();
+    function pad(n) { return String(n).length < 2 ? "0" + n : String(n); }
+    a.href = url;
+    a.download = "ציונים-" + now.getFullYear() + "-" + pad(now.getMonth() + 1) + "-" + pad(now.getDate()) + ".csv";
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+  }
+
+  var btnExportCsv = document.getElementById("btnExportCsv");
+  if (btnExportCsv) btnExportCsv.addEventListener("click", exportCSV);
+
+  // ---------- init ----------
+  renderCourseAll();
+  renderDegreeRows();
+  renderDegreeTally();
+  applyMode();
+})();
+</script>
+</body>
+</html>
